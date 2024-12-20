@@ -1,0 +1,66 @@
+default_platform(:ios)
+
+def root_path
+  Dir.pwd.sub(/.*\Kfastlane/, '').sub(/.*\Kandroid/, '').sub(/.*\Kios/, '').sub(/.*\K\/\//, '')
+end
+
+platform :ios do
+
+  desc "Resolves all the dependencies"
+  lane :get_dependencies do
+    sh_on_root(command: "flutter pub get --suppress-analytics")
+  end
+
+  lane :sh_on_root do |options|
+    command = options[:command]
+    sh("cd #{root_path} && #{command}")
+  end
+
+  desc "Connect to Apple Developer using API key"
+  lane :connect_to_apple_developer do
+    app_store_connect_api_key(
+      key_id: "#{ENV['APPLE_KEY_ID']}",
+      issuer_id: "#{ENV['KEY_ISSUER_ID']}",
+      key_filepath: "./#{ENV['API_KEY_FILE_NAME']}",
+      duration: 1200, 
+      in_house: false 
+    )
+  end
+
+  desc "Setup certificates & provisioning profiles"
+  lane :setup_and_build do
+    setup_ci()
+    match(
+      readonly: true, 
+      app_identifier: "#{ENV['APP_IDENTIFIER']}",
+      type: 'appstore',  
+      keychain_name: "fastlane_tmp_keychain",
+    )
+
+    version = ENV['VERSION_NUMBER']
+    
+    increment_build_number(
+      build_number: "#{ENV['VERSION_CODE']}"
+    )
+
+    increment_version_number(
+      version_number: "#{ENV['VERSION_NUMBER']}"
+    )
+
+    build_app(
+      workspace: "Runner.xcworkspace",
+      configuration: "Release"
+    )
+  end
+
+  desc "Publish to Testflight"
+  lane :publish do
+    connect_to_apple_developer
+    upload_to_testflight(
+      ipa: "#{ENV['BUILD_SOURCES_DIRECTORY']}/#{ENV['PROJECT_ROOT_DIR']}/ios/Runner.ipa",
+      distribute_external: true,
+      groups: ["Internal-EDI"],
+      changelog: "Test changelog"
+    )
+  end
+end

@@ -1,0 +1,42 @@
+default_platform(:android)
+
+def root_path
+  Dir.pwd.sub(/.*\Kfastlane/, '').sub(/.*\Kandroid/, '').sub(/.*\Kios/, '').sub(/.*\K\/\//, '')
+end
+
+platform :android do
+
+  desc "Execute command on root"
+  lane :sh_on_root do |options|
+    command = options[:command]
+    sh("cd #{root_path} && #{command}")
+  end
+
+  desc "Resolves all the dependenices"
+  lane :get_dependencies do
+    sh_on_root(command: "flutter pub get --suppress-analytics")
+  end
+
+  desc "Builds the Android App"
+  lane :build do
+    get_dependencies
+    version = ENV['VERSION_NUMBER']
+    sh_on_root(command: "flutter build appbundle --build-name=#{ENV['VERSION_NUMBER']} --build-number=#{ENV['VERSION_CODE']}")
+  end
+
+ desc "Uploads to the Google Play Store"
+  lane :publish do
+    begin
+      upload_to_play_store(
+        track: "internal",
+        json_key: "#{ENV['BUILD_SOURCES_DIRECTORY']}/#{ENV['PROJECT_ROOT_DIR']}/android/#{ENV['ANDROID_JSON_KEY_FILE_NAME']}",
+        aab: "#{ENV['BUILD_SOURCES_DIRECTORY']}/#{ENV['PROJECT_ROOT_DIR']}/build/app/outputs/bundle/release/app-release.aab",
+        skip_upload_screenshots: true,
+        skip_upload_images: true
+      )
+    rescue => exception
+      raise exception unless exception.message.include?('This aab specifies a version code that has already been used.')
+      puts 'Current version already present on the Play Store. Omitting this upload.'
+    end
+  end
+end
