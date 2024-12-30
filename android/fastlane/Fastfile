@@ -12,19 +12,19 @@ platform :android do
     sh("cd #{root_path} && #{command}")
   end
 
-  desc "Resolves all the dependenices"
+  desc "Resolve all the dependencies"
   lane :get_dependencies do
     sh_on_root(command: "flutter pub get --suppress-analytics")
   end
 
-  desc "Builds the Android App"
+  desc "Build the Android App"
   lane :build do
     get_dependencies
     version = ENV['VERSION_NUMBER']
     sh_on_root(command: "flutter build appbundle --build-name=#{ENV['VERSION_NUMBER']} --build-number=#{ENV['VERSION_CODE']}")
   end
 
- desc "Uploads to the Google Play Store"
+ desc "Upload to Google Play Store"
   lane :publish do
     begin
       upload_to_play_store(
