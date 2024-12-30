@@ -59,7 +59,7 @@ platform :ios do
     upload_to_testflight(
       ipa: "#{ENV['BUILD_SOURCES_DIRECTORY']}/#{ENV['PROJECT_ROOT_DIR']}/ios/Runner.ipa",
       distribute_external: true,
-      groups: ["Internal-EDI"],
+      groups: ["Internal-group"],
       changelog: "Test changelog"
     )
   end
